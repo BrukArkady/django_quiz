@@ -1,7 +1,7 @@
 Django==2.0.3
-django-allauth=0.35.0
-django-ckeditor=5.4.0
-django-smart-selects=1.5.4
-psycopg=2.7.4
-Pillow=5.0.0
-whitenoise=3.3.1
+django-allauth==0.35.0
+django-ckeditor==5.4.0
+django-smart-selects==1.5.4
+psycopg==2.7.4
+Pillow==5.0.0
+whitenoise==3.3.1
