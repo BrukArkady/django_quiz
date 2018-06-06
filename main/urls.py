@@ -1,0 +1,50 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path(
+        '',
+        views.QuestionnaireList.as_view(),
+        name='index'
+    ),
+    path(
+        'questions/<topic>/process_answer',
+        views.ProcessAnswer.as_view(),
+        name='process_answer'
+    ),
+    path(
+        'questions/<topic>',
+        views.QuestionsList.as_view(),
+        name='questions'
+    ),
+    path(
+        'results/<user>',
+        views.ResultsList.as_view(),
+        name='results'
+    ),
+    path(
+        'results/<user>/<id>',
+        views.ResultView.as_view(),
+        name='result'
+    ),
+    path(
+        'questionnaire_editor',
+        views.QuestionnaireEditor.as_view(),
+        name='add_questionnaire'
+    ),
+    path(
+        'questionnaire_editor/add_questionnaire',
+        views.ProcessNewQuestionnaire.as_view(),
+        name='process_questionnaire'
+    ),
+    path(
+        'questionnaire_editor/get_questions',
+        views.GetQuestionnaireQuestions.as_view(),
+        name='get_questions'
+    ),
+    path(
+        'questionnaire_editor/add_existing_question',
+        views.GetQuestionVariants.as_view(),
+        name='add_existing_question'
+    ),
+]

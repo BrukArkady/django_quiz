@@ -1,0 +1,74 @@
+{
+  "title": "Опросник",
+  "type": "object",
+  "properties": {
+    "questionnaire": {
+      "type": "string",
+      "title": "Название опроника",
+      "minLength": 1
+    },
+    "questions": {
+      "type": "array",
+      "format": "table",
+      "title": "Вопросы",
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "title": "Вопрос",
+        "required": ["question_type"],
+        "properties": {
+          "question_num": {
+            "type": "number",
+            "options": {
+              "input_width": "10px"
+            },
+            "format": "number",
+            "title": "Номер вопроса",
+            "default": 1,
+            "readOnly": true
+          },
+          "question": {
+            "type": "string",
+            "title": "Вопрос",
+            "minLength" : 1
+          },
+          "question_type": {
+            "type": "string",
+            "enum": [
+              "Вопрос с одним вариантом ответа",
+              "Вопрос без вариантов ответа",
+              "Вопрос с несколькими вариантами ответа"
+            ],
+            "title": "Тип вопроса"
+          },
+          "variants": {
+            "type": "array",
+            "format": "table",
+            "title": "Варианты",
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "title": "Вариант",
+              "properties": {
+                "variant": {
+                  "type": "string",
+                  "title": "Вариант",
+                  "minLength" : 1
+                },
+                "is_right_variant": {
+                  "type": "boolean",
+                  "format": "checkbox",
+                  "title": "Правильный ли вариант"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

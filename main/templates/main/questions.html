@@ -1,0 +1,76 @@
+{% extends "main/base.html" %}
+
+{% load staticfiles %}
+
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="{% static 'main/css/questions.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'main/css/auth_required.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% if user.is_authenticated %}
+        {% if questions_with_variants|length > 0 %}
+            <form id="ajax_form" class="questions" method="POST" action="">
+                {% csrf_token %}
+                {% for question, variants in questions_with_variants.items %}
+                    <div class="question_obj">
+                        <p class="question">
+                            <b>{{ question.0 }}</b>
+                        </p>
+                        {% if question.1 == 1 %}  <!--Вопрос без вариантов ответов-->
+                            <p class="variant">
+                                <input
+                                        type="text"
+                                        name="{{ forloop.counter }}"
+                                        maxlength="50"
+                                        title="Пожалуйста, введите ответ."
+                                        required
+                                        oninvalid="this.setCustomValidity('Пожалуйста, введите ответ.')"
+                                        oninput="setCustomValidity('')"
+                                >
+                            </p>
+                        {% elif question.1 == 2 %}  <!--Вопрос с одним вариантом ответа-->
+                            {% for variant in variants %}
+                                <p class="variant">
+                                    <input
+                                            class="rad-{{ forloop.parentloop.counter }}"
+                                            name="{{ forloop.parentloop.counter }}"
+                                            type="radio"
+                                            title="Пожалуйста, выберите один из вариантов ответа."
+                                            value="{{ variant }}"
+                                            required
+                                            oninvalid="this.setCustomValidity('Пожалуйста, выберите один из вариантов ответа.')"
+                                            onclick="clearRadioValidity({{ forloop.parentloop.counter }});"
+                                    > {{ variant }}
+                                </p>
+                            {% endfor %}
+                        {% else %}  <!--Вопрос с несколькими вариантами ответов-->
+                            <div class="cbxcls-{{ forloop.counter }}">
+                                {% for variant in variants %}
+                                    <p class="variant">
+                                        <input
+                                                class="cbx-{{ forloop.parentloop.counter }}"
+                                                name="{{ forloop.parentloop.counter }}"
+                                                type="checkbox"
+                                                title="Пожалуйста, выберите один или несколько вариантов ответа."
+                                                value="{{ variant }}"
+                                                required oninvalid="this.setCustomValidity('Пожалуйста, выберите один или несколько вариантов ответа.')"
+                                                onclick="clearCheckBoxValidity({{ forloop.parentloop.counter }});"
+                                        > {{ variant }}
+                                    </p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="container text-center">
+                    <button id="sub_btn" class="primaryAction btn btn-primary btn-lg" type="submit">Проверить</button>
+                </div>
+            </form>
+        {% else %}
+            <p class="no_questions text-center">В этом опроснике пока нет вопросов.</p>
+        {% endif %}
+    {% else %}
+        {% include "main/includes/auth_required.html" %}
+    {% endif %}
+{% endblock %}

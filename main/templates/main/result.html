@@ -1,0 +1,37 @@
+{% extends "main/base.html" %}
+
+{% load staticfiles %}
+
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="{% static 'main/css/circle.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'main/css/result.css' %}">
+    <div class="col-sm-9">
+        {% for key, value  in result.result.items %}
+            <div class="question_obj">
+                <p class="question">
+                    <b>{{ key }}. {{ value.3 }}</b>
+                    {% if value.2 == 1 %}
+                        <img src="{% static 'main/images/right.png' %}">
+                    {% else %}
+                        <img src="{% static 'main/images/wrong.png' %}">
+                    {% endif %}
+                </p>
+                {% if value.2 == 1 %}
+                    <p class="answers" style="color: green;">Ваш ответ: {{ value.0 }}</p>
+                {% else %}
+                    <p class="answers" style="color: red;">Ваш ответ: {{ value.0 }}</p>
+                {% endif %}
+                <p class="answers" style="color: green;">Правильный ответ: {{ value.1 }}</p>
+            </div>
+        {% endfor %}
+    </div>
+    <div id="percent" class="col-sm-3">
+        <div class="c100 p{{ result.percent_result }} big orange">
+          <span>{{ result.percent_result }}%</span>
+          <div class="slice">
+            <div class="bar"></div>
+            <div class="fill"></div>
+          </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "main/base.html" %}
+
+{% load staticfiles %}
+
+{% block extra_head %}
+    <meta charset="utf-8" />
+    <title>Добавление опросника</title>
+    {% load staticfiles %}
+    <link rel="shortcut icon" type="image/png" href="{% static 'main/images/favicon.ico' %}"/>
+    <link rel='stylesheet' href='//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css'>
+    <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.css'>
+    <script src="{% static 'main/js/jsoneditor.js' %}"></script>
+    <style>
+        [data-schemapath="root.questions"] table {
+            display: block;
+            overflow-x: auto;
+        }
+    </style>
+    <script>
+    JSONEditor.defaults.theme = 'bootstrap3';
+    JSONEditor.defaults.iconlib = 'fontawesome4';
+    JSONEditor.defaults.options.object_layout = 'grid';
+    JSONEditor.defaults.options.disable_properties = true;
+    JSONEditor.defaults.options.disable_collapse = true;
+    </script>
+{% endblock %}
+
+{% block content %}
+    <div class="container" id="error_unique_question"></div>
+    <div class="container" id="error_unique_variant"></div>
+    <div id='editor_holder'></div>
+    <div class="container text-center">
+        <button id='submit' class='btn btn-primary btn-lg' disabled>Добавить опросник</button>
+    </div>
+    <script>
+        // Initialize the editor
+        var editor = new JSONEditor(document.getElementById('editor_holder'),{
+            ajax: true,
+            schema: {
+              $ref: "{% static 'main/js/questionnaire_schema.json' %}",
+            }
+        });
+		
+        $(function() {
+            setTimeout(function() {
+                $('button[title="Добавить Вопрос"]').after(
+                    '<button id="toogle_existing_question" type="button" title="Добавить Существующий Вопрос" class="btn btn-default json-editor-btn-add"><i class="fa fa-plus"></i> Существующий Вопрос</button>\
+                    <div id="existing_question_div" style="background-color: white; border: 1px solid black; box-shadow: black 3px 3px; position: absolute; z-index: 10; left: 0px; top: 33px; display: none;">\
+                        <select id="questionnaire_selector"><option>---</option>{% for item in questionnaire_list %}<option>{{ item }}</option>{% endfor %}</select><br>\
+                        <select id="question_selector"></select><br>\
+                        <button id="add_existing_question" type="button" title="Добавить" class="btn btn-default json-editor-btn-save "><i class="fa fa-plus"></i> Добваить</button>\
+                    </div>'
+                );
+                let toogle_flag = true;
+                $('#toogle_existing_question').click(function() {
+                    if (toogle_flag) {
+                        $('#existing_question_div').css("display","block");
+                        toogle_flag = !toogle_flag
+                    } else {
+                        $('#existing_question_div').css("display","none");
+                        toogle_flag = !toogle_flag
+                    }
+                });
+                $('#questionnaire_selector').change(function() {
+                    $('#question_selector').empty();
+                    if ($('#questionnaire_selector').val() != '---') {
+                        $.ajax({
+                            url: "questionnaire_editor/get_questions",
+                            type: "POST",
+                            data: $('#questionnaire_selector').val(),
+                            success: function(response) {
+                                question_obj = JSON.parse(response);
+                                for (question_num in question_obj) {
+                                    $('#question_selector').append('<option value=' + question_num + '>' + question_num + '. ' + question_obj[question_num] + '</option>');
+                                }
+                            },
+                            error: function(response) {
+                                alert("Возникла ошибка при получении вопросов из опросника!");
+                            }
+                        });
+                    }
+                });
+                $('#add_existing_question').click(function() {
+                    $.ajax({
+                        url: "questionnaire_editor/add_existing_question",
+                        type: "POST",
+                        data: JSON.stringify([$('#questionnaire_selector').val(), $('#question_selector').val()]),
+                        success: function(response) {
+                            response_obj = JSON.parse(response);
+                            let type_mapping = {
+                                1: 'Вопрос без вариантов ответа',
+                                2: 'Вопрос с одним вариантом ответа',
+                                3: 'Вопрос с несколькими вариантами ответа'
+                            };
+                            let json = editor.getValue();
+                            json.questions.push(
+                                {
+                                    "question_num": json.questions[json.questions.length-1].question_num + 1,
+                                    "question": response_obj.question,
+                                    "question_type": type_mapping[response_obj.question_type],
+                                    "variants": []
+                                }
+                            );
+                            response_obj.variants.forEach(function(variant) {
+                                let is_right_variant = false;
+                                if ($.inArray(variant, response_obj.right_variants) >= 0) {
+                                    is_right_variant = true;
+                                }
+                                json.questions[json.questions.length-1].variants.push({"variant": variant, "is_right_variant": is_right_variant});
+                            });
+                            editor.setValue(json);
+                        },
+                        error: function(response) {
+                            alert("Возникла ошибка при добавлении вопроса!");
+                        }
+                    });
+                });
+            }, 100);
+        });
+
+        // Hook up the submit button to send questionnaire to the view
+        document.getElementById('submit').addEventListener('click',function() {
+            $.ajax({
+                url: "questionnaire_editor/add_questionnaire",
+                type: "POST",
+                data: JSON.stringify(editor.getValue()),
+                success: function(response) {
+                    location.reload();
+                },
+                error: function(response) {
+                    alert("Извините, возникла ошибка!");
+                }
+            });
+        });
+
+        function unique(arr) {
+          var obj = {};
+          for (var i = 0; i < arr.length; i++) {
+            var str = arr[i];
+            obj[str] = true;
+          }
+          return Object.keys(obj);
+        }
+
+        // Validate inputs whenever the editor changes
+        editor.on('change',function() {
+             // Set question numbers
+             let json = editor.getValue()
+             for ( i = 0; i < json.questions.length; i++ ) {
+                json.questions[i].question_num = i + 1;
+             }
+             editor.setValue(json);
+
+            // Check if this questionnaire is already available.
+            let questionnaire_list = [];
+            {% for item in questionnaire_list %}
+            questionnaire_list.push('{{ item.questionnaire }}');
+            {% endfor %}
+            let questionaire_availability_indicator;
+            let questionnaire_input_val =  $('input[name="root[questionnaire]"').val();
+            if($.inArray(questionnaire_input_val, questionnaire_list) === -1 || questionnaire_input_val.length < 1) {
+                $('div[data-schemapath="root.questionnaire"] div:last').empty();
+            }
+            else {
+                $('div[data-schemapath="root.questionnaire"] div:last').html('<p style="color: red;">Опросник с таким именем уже существует.</p>');
+                questionaire_availability_indicator = true;
+            }
+
+            let checkbox_check_list = []
+            let variants_check_list = []
+            let type_objs = $('select[name$="[question_type]"]');
+            $.each(type_objs, function() {
+                let question_index = $(this).attr('name')[$(this).attr('name').search(/[\d]/)];
+                let checkboxes = $('input[type="checkbox"][name^="root[questions][' + question_index + '][variants]"');
+                $('td[data-schemapath="root.questions.' + question_index + '.variants"] .json-editor-btn-add').css('visibility', 'visible');
+   	            if(this.value == "Вопрос с одним вариантом ответа") {
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').empty();
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').append('<p class="desc_qtype">Этот тип вопроса должен, обязательно,<br> иметь только один правильный вариант ответ!</p>');
+   	                let checked_counter = 0;
+   	                $.each(checkboxes, function() {
+   	                    if(this.checked == true) {
+   	                        checked_counter += 1;
+   	                    }
+   	                });
+   	                if (checked_counter == 1) {
+   	                    checkbox_check_list.push(true);
+   	                }
+   	            }
+   	            else if(this.value == "Вопрос без вариантов ответа"){
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').empty();
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').append('<p class="desc_qtype">Этот тип вопроса должен, обязательно,<br> иметь правильный вариант ответ!</p>');
+   	                $('td[data-schemapath="root.questions.' + question_index + '.variants"] .json-editor-btn-add').css('visibility', 'hidden');
+   	                $('td[data-schemapath="root.questions.' + question_index + '.variants"] button[title="Удалить все"]').trigger('click');
+   	                let checked_counter = 0;
+   	                $.each(checkboxes, function() {
+   	                    if(this.checked == true) {
+   	                        checked_counter += 1;
+   	                    }
+   	                });
+   	                if (checked_counter == 1) {
+   	                    checkbox_check_list.push(true);
+   	                }
+   	            }
+   	            else {
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').empty();
+   	                $('td[data-schemapath="root.questions.' + question_index + '.question_type"] div:last').append('<p class="desc_qtype">Этот тип вопроса должен, обязательно,<br> иметь хотя бы один правильный вариант ответ!</p>');
+                    let checked_counter = 0;
+   	                $.each(checkboxes, function() {
+   	                    if(this.checked == true) {
+   	                        checked_counter += 1;
+   	                    }
+   	                });
+                    if (checked_counter > 0) {
+   	                    checkbox_check_list.push(true);
+   	                }
+   	            }
+   	            let variant_inputs = $('input[type="text"][name^="root[questions][' + question_index + '][variants]"').map(function() { return $(this).val();}).get();
+                if(variant_inputs.length == unique(variant_inputs).length) {
+                    variants_check_list.push(true);
+                }
+            });
+
+            let all_questions = $('input[name$="[question]"]').map(function() { return $(this).val();}).get();
+            let questions_number = editor.getValue().questions[editor.getValue().questions.length-1].question_num;
+
+            if(all_questions.length != unique(all_questions).length) {
+                $('#error_unique_question').html('<p style="color: red;">Одинаковые вопросы недопустимы.</p>');
+            }
+            else {
+                $('#error_unique_question').empty();
+            }
+
+            if(variants_check_list.length != questions_number) {
+                $('#error_unique_variant').html('<p style="color: red;">Одинаковые варианты ответов в одном вопросе недопустимы.</p>');
+            }
+            else {
+                $('#error_unique_variant').empty();
+            }
+
+            // Get an array of errors from the validator
+            var errors = editor.validate();
+            // Not valid
+            if(
+                errors.length ||
+                questionaire_availability_indicator ||
+                checkbox_check_list.length != questions_number ||
+                variants_check_list.length != questions_number ||
+                all_questions.length != unique(all_questions).length
+            ) {
+                $('#submit').attr('disabled', true);
+            }
+            // Valid
+            else {
+                $('#submit').attr('disabled', false);
+            }
+        });
+    </script>
+{% endblock %}

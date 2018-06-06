@@ -1,0 +1,12 @@
+#percent {
+    align: left;
+}
+.question_obj{
+    padding: 10px 10px 10px 20px;
+}
+.question {
+    font-size: 22px;
+}
+.answers {
+    padding: 0px 0px 0px 30px;
+}

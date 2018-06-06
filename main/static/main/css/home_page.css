@@ -1,0 +1,8 @@
+.jumbotron {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+.jumbotron p, .jumbotron li {
+    text-align: justify;
+    font-size: 18px;
+}

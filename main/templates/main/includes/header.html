@@ -1,0 +1,20 @@
+{% load staticfiles %}
+
+<div class="page-header text-center">
+    <div class="container">
+        <div class="col-sm-4 col-sm-offset-4">
+            <a href="/"><img src="{% static 'main/images/Artezio_logo.jpg' %}" width="100%"></a>
+        </div>
+        <div class="col-sm-4">
+        {% if user.is_authenticated %}
+            Привет, {{ user.username }}!
+            <br>
+            <a href="/accounts/logout">Выход</a>
+        {% else %}
+            <form action="/accounts/login">
+                <button class="btn btn-default btn-lg">Вход</button>
+            </form>
+        {% endif %}
+        </div>
+    </div>
+</div>

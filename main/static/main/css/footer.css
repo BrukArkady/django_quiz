@@ -1,0 +1,15 @@
+footer img {
+    width: 40px;
+    height: 40px;
+    opacity: 0.7;
+}
+footer img:hover {
+    opacity: 1;
+}
+footer {
+    padding-top: 5px;
+    margin-top: 5px;
+}
+footer p a img {
+    align: left;
+}
